@@ -2,20 +2,19 @@ import curses
 import random
 
 def create_food(snake):
-    """Generate food coordinates that do not overlap with the snake."""
     while True:
         food = [random.randint(1, 18), random.randint(1, 58)]
         if food not in snake:
             return food
 
-def main(stdscr):
+def run_game(stdscr):
     curses.curs_set(0)
     sh, sw = stdscr.getmaxyx()
 
     if sh < 20 or sw < 60:
-        stdscr.addstr(0, 0, "Terminal must be at least 20x60. Press any key.")
+        stdscr.addstr(0, 0, "Terminal must be at least 20x60.")
         stdscr.getch()
-        return
+        return False
 
     win_y = (sh // 2) - 10
     win_x = (sw // 2) - 30
@@ -25,14 +24,9 @@ def main(stdscr):
 
     timeout = 150
     win.timeout(timeout)
-
     win.border(0)
 
-    snake = [
-        [10, 15],
-        [10, 14],
-        [10, 13]
-    ]
+    snake = [[10, 15], [10, 14], [10, 13]]
 
     for y, x in snake:
         win.addch(y, x, '#')
@@ -50,11 +44,12 @@ def main(stdscr):
         curses.KEY_RIGHT: curses.KEY_LEFT
     }
 
-    paused = False  # 🔥 Pause state
+    paused = False
 
     while True:
         win.addstr(0, 2, f' Score: {score} ')
 
+        # 🔥 Pause Logic
         if paused:
             win.addstr(9, 22, " PAUSED ")
             win.addstr(10, 18, " Press 'P' to Resume ")
@@ -62,24 +57,22 @@ def main(stdscr):
 
             while True:
                 k = win.getch()
-                if k == ord('p') or k == ord('P'):
+                if k in [ord('p'), ord('P')]:
                     paused = False
                     win.clear()
                     win.border(0)
 
-                    # redraw snake
                     for y, x in snake:
                         win.addch(y, x, '#')
 
-                    # redraw food
                     win.addch(food[0], food[1], '@')
                     break
             continue
 
         next_key = win.getch()
 
-        # 🔥 Pause trigger
-        if next_key == ord('p') or next_key == ord('P'):
+        # Pause trigger
+        if next_key in [ord('p'), ord('P')]:
             paused = True
             continue
 
@@ -121,12 +114,28 @@ def main(stdscr):
 
         win.addch(new_head[0], new_head[1], '#')
 
-    # Game Over
-    win.addstr(8, 24, " GAME OVER ")
-    win.addstr(10, 22, f" Final Score: {score} ")
-    win.addstr(12, 17, " Press any key to exit ")
+    # 🔥 Game Over Screen with Restart Option
+    win.clear()
+    win.border(0)
+    win.addstr(8, 22, " GAME OVER ")
+    win.addstr(10, 20, f" Final Score: {score} ")
+    win.addstr(12, 15, " Press 'R' to Restart ")
+    win.addstr(13, 15, " Press any other key to Exit ")
+    win.refresh()
+
     win.timeout(-1)
-    win.getch()
+    key = win.getch()
+
+    if key in [ord('r'), ord('R')]:
+        return True  # Restart
+    return False  # Exit
+
+
+def main(stdscr):
+    while True:
+        restart = run_game(stdscr)
+        if not restart:
+            break
 
 if __name__ == "__main__":
     curses.wrapper(main)
