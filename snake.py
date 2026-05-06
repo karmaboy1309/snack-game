@@ -1,5 +1,18 @@
 import curses
 import random
+import os
+
+HIGHSCORE_FILE = "highscore.txt"
+
+def get_highscore():
+    if not os.path.exists(HIGHSCORE_FILE):
+        return 0
+    with open(HIGHSCORE_FILE, "r") as f:
+        return int(f.read() or 0)
+
+def save_highscore(score):
+    with open(HIGHSCORE_FILE, "w") as f:
+        f.write(str(score))
 
 def create_food(snake):
     while True:
@@ -15,6 +28,8 @@ def run_game(stdscr):
         stdscr.addstr(0, 0, "Terminal must be at least 20x60.")
         stdscr.getch()
         return False
+
+    highscore = get_highscore()
 
     win_y = (sh // 2) - 10
     win_x = (sw // 2) - 30
@@ -47,9 +62,10 @@ def run_game(stdscr):
     paused = False
 
     while True:
+        # 🔥 Show Score + High Score
         win.addstr(0, 2, f' Score: {score} ')
+        win.addstr(0, 20, f' High: {highscore} ')
 
-        # 🔥 Pause Logic
         if paused:
             win.addstr(9, 22, " PAUSED ")
             win.addstr(10, 18, " Press 'P' to Resume ")
@@ -71,7 +87,6 @@ def run_game(stdscr):
 
         next_key = win.getch()
 
-        # Pause trigger
         if next_key in [ord('p'), ord('P')]:
             paused = True
             continue
@@ -93,7 +108,6 @@ def run_game(stdscr):
 
         new_head = [head_y, head_x]
 
-        # Collision
         if (new_head[0] in [0, 19] or
             new_head[1] in [0, 59] or
             new_head in snake):
@@ -103,6 +117,11 @@ def run_game(stdscr):
 
         if new_head == food:
             score += 1
+
+            # 🔥 Update high score live
+            if score > highscore:
+                highscore = score
+
             timeout = max(30, timeout - 2)
             win.timeout(timeout)
 
@@ -114,21 +133,25 @@ def run_game(stdscr):
 
         win.addch(new_head[0], new_head[1], '#')
 
-    # 🔥 Game Over Screen with Restart Option
+    # 🔥 Save High Score
+    save_highscore(highscore)
+
+    # Game Over Screen
     win.clear()
     win.border(0)
     win.addstr(8, 22, " GAME OVER ")
     win.addstr(10, 20, f" Final Score: {score} ")
-    win.addstr(12, 15, " Press 'R' to Restart ")
-    win.addstr(13, 15, " Press any other key to Exit ")
+    win.addstr(11, 20, f" High Score: {highscore} ")
+    win.addstr(13, 15, " Press 'R' to Restart ")
+    win.addstr(14, 15, " Press any other key to Exit ")
     win.refresh()
 
     win.timeout(-1)
     key = win.getch()
 
     if key in [ord('r'), ord('R')]:
-        return True  # Restart
-    return False  # Exit
+        return True
+    return False
 
 
 def main(stdscr):
